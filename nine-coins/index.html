@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nine Coins for the Crossing</title>
+<style>
+  :root{
+    --bg: #100e0c;
+    --bg-panel: #17140f;
+    --ink: #d8cdb8;
+    --ink-dim: #8a8070;
+    --ink-faint: #55503f;
+    --gold: #d3a44f;
+    --gold-dim: #7c6534;
+    --spent: #3a362c;
+    --danger: #a3543a;
+    --taint: #7a5a8a;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: radial-gradient(ellipse at 50% -10%, #241d13 0%, var(--bg) 55%, #0a0908 100%);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.65;
+    min-height: 100vh;
+    display:flex;
+    justify-content:center;
+    padding: 32px 16px 64px;
+  }
+  #app{ width: 100%; max-width: 680px; }
+
+  header.gamehead{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom: 1px solid var(--ink-faint);
+    padding-bottom: 10px;
+    margin-bottom: 28px;
+  }
+  header.gamehead h1{
+    font-size: 1.05rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin:0;
+    color: var(--gold);
+    font-weight: normal;
+  }
+  #purseToggle{
+    background:none;
+    border: 1px solid var(--ink-faint);
+    color: var(--ink-dim);
+    font-family: var(--serif);
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor:pointer;
+  }
+  #purseToggle:hover{ color: var(--gold); border-color: var(--gold-dim); }
+  #purseToggle .count{ color: var(--gold); }
+
+  #stage{
+    animation: fadeIn 0.9s ease;
+  }
+  @keyframes fadeIn{
+    from{ opacity:0; transform: translateY(6px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+
+  .note{
+    color: var(--taint);
+    font-style: italic;
+    font-size: 0.95rem;
+    margin: 0 0 20px;
+    padding-left: 12px;
+    border-left: 2px solid var(--taint);
+  }
+
+  #text p{
+    margin: 0 0 1.05em;
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+  #text p:first-letter{ }
+
+  .ending-title{
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 1rem;
+    margin: 0 0 18px;
+    border-bottom: 1px solid var(--gold-dim);
+    padding-bottom: 10px;
+  }
+
+  #choices{
+    margin-top: 26px;
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+  }
+  .choice{
+    text-align:left;
+    background: var(--bg-panel);
+    border: 1px solid var(--ink-faint);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 1rem;
+    padding: 12px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .choice:hover{
+    border-color: var(--gold);
+    color: var(--gold);
+    background: #1c1710;
+  }
+  .choice .sub{
+    display:block;
+    color: var(--ink-dim);
+    font-size: 0.85rem;
+    font-style: italic;
+    margin-top: 3px;
+  }
+  .choice:disabled{
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* picker */
+  #picker{
+    margin-top: 18px;
+    border: 1px solid var(--gold-dim);
+    background: var(--bg-panel);
+    border-radius: 4px;
+    padding: 16px;
+  }
+  #picker .pickerHead{
+    color: var(--gold);
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 12px;
+  }
+  .pickRow{
+    display:flex;
+    align-items:flex-start;
+    gap: 10px;
+    padding: 8px 6px;
+    border-radius: 3px;
+    cursor:pointer;
+  }
+  .pickRow:hover{ background: #211b12; }
+  .pickRow input{ margin-top: 4px; }
+  .pickRow .t{ font-weight:bold; color: var(--ink); }
+  .pickRow .d{ color: var(--ink-dim); font-size: 0.88rem; display:block; }
+  #pickerConfirm{
+    margin-top: 14px;
+    background: var(--gold-dim);
+    border: none;
+    color: #100e0c;
+    font-family: var(--serif);
+    font-weight:bold;
+    padding: 9px 18px;
+    border-radius: 3px;
+    cursor:pointer;
+  }
+  #pickerConfirm:disabled{ opacity:0.35; cursor:not-allowed; }
+  #pickerConfirm:not(:disabled):hover{ background: var(--gold); }
+
+  /* purse panel */
+  #purse{
+    display:none;
+    margin-bottom: 26px;
+    border: 1px solid var(--ink-faint);
+    background: var(--bg-panel);
+    border-radius: 4px;
+    padding: 16px 18px;
+  }
+  #purse.open{ display:block; }
+  #purse h2{
+    margin: 0 0 12px;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    font-weight:normal;
+  }
+  .coinItem{ padding: 10px 0; border-top: 1px solid #241f16; }
+  .coinItem:first-child{ border-top:none; }
+  .coinItem .ct{
+    font-weight:bold;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .coinItem.kept .ct{ color: var(--gold); }
+  .coinItem.spent .ct{ color: var(--ink-faint); text-decoration: line-through; }
+  .coinItem .mark{ font-size: 0.8em; }
+  .coinItem.tainted .ct{ color: var(--taint); }
+  .coinItem p{ margin: 6px 0 0; font-size: 0.92rem; color: var(--ink-dim); }
+  .coinItem.spent p{ font-style: italic; color: var(--ink-faint); }
+
+  footer.foot{
+    margin-top: 40px;
+    text-align:center;
+    color: var(--ink-faint);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  #titleScreen h1{
+    font-size: 1.9rem;
+    color: var(--gold);
+    text-align:center;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    font-weight: normal;
+  }
+  #titleScreen .sub{
+    text-align:center;
+    color: var(--ink-dim);
+    font-style: italic;
+    margin-bottom: 36px;
+  }
+  #titleScreen .about{
+    color: var(--ink-dim);
+    font-size: 0.95rem;
+    max-width: 460px;
+    margin: 0 auto 36px;
+    text-align:center;
+  }
+  #titleScreen #choices{ align-items:center; }
+  #titleScreen .choice{ width: 260px; text-align:center; }
+
+  @media (max-width: 480px){
+    #titleScreen .choice{ width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="gamehead" id="headerBar" style="display:none;">
+    <h1>Nine Coins</h1>
+    <button id="purseToggle">Your Purse (<span class="count" id="coinCount">9</span>)</button>
+  </header>
+
+  <div id="purse"></div>
+
+  <main id="stage">
+    <div id="text"></div>
+    <div id="choices"></div>
+    <div id="picker" style="display:none;"></div>
+  </main>
+
+  <footer class="foot">a small piece of interactive fiction &middot; every choice is final, mostly</footer>
+</div>
+
+<script>
+(function(){
+
+  var COIN_DEFS = [
+    { id:'snow', title:'The First Snow',
+      text:"You are six years old, or seven, pressed to a cold window with your breath fogging the glass. The world outside has gone white and silent overnight, erasing the fence, the road, the boundary between your yard and the next. You are not thinking about being good or being loved or being anything at all. You are only watching it fall, and it is enough." },
+    { id:'name', title:'Your Name, Marisol',
+      text:"Your mother is calling you in from somewhere behind the house, and the shape your name makes in her mouth is unlike the shape anyone else gives it — softer at the front, a small held breath before the M. Marisol. It is the first word you ever answered to, before you understood that answering was a choice you were making." },
+    { id:'laugh', title:"Wren's Laugh",
+      text:"Wren is four, maybe five, running a kite into the wind along the tide line, and the string snaps, and instead of crying she laughs — a full, delighted, undignified laugh, both hands over her mouth like she's caught herself doing something wonderful and forbidden. You have never loved anyone as simply as you love her in this exact second." },
+    { id:'apology', title:'The Apology You Never Made',
+      text:"Your mother is in a hospital bed and you are in the hallway, rehearsing. You have the words ready — I'm sorry, I should have called more, I should have forgiven you sooner, or asked you to forgive me, I don't remember which of us was owed it. You go back in. You talk about the weather instead. She dies eleven days later, and the words are still in the hallway, waiting." },
+    { id:'song', title:'The Song at the Stove',
+      text:"Your mother, young then, still whole, humming something with no name while she stirs a pot that fills the kitchen with steam and garlic. You are underfoot. She doesn't send you away. The song has no words you ever learned, only a shape, low and looping, and for the rest of your life the smell of garlic in butter will pull it back up out of nowhere." },
+    { id:'scar', title:'The Scar on Your Palm',
+      text:"Fourteen years old, climbing a fence you were told not to climb, to reach a cat that turned out not to need reaching at all. The wire opens your palm to the bone. You remember the surprise more than the pain — how casually your own body could be undone — and you remember not telling anyone how it happened, letting them believe something braver." },
+    { id:'salt', title:'The Taste of Salt',
+      text:"A whole day at the sea with Wren, the two of you, no reason for it, no occasion — just a Tuesday you decided to steal. Salt on your lips, salt drying pale on your arms, the particular ache of a body that has been happy outdoors for too many hours. You slept in the car on the way home and did not dream, because there was nothing better to dream than the day you'd just had." },
+    { id:'promise', title:'The Promise',
+      text:"The last thing you said to Wren, leaning down at the door with your coat still cold from outside: I'll come back before the first snow. You said it the way you say things you are certain of, not knowing certainty is not yours to spend. It is, now, the only promise you have left that has not technically expired — the snow, as far as you know, has not yet fallen." },
+    { id:'meal', title:'The Last Meal',
+      text:"Toast, slightly burnt at one corner the way you liked it and no one else in the house did. Coffee gone lukewarm because you were reading something and forgot it. Nothing about that morning announced itself as the last of anything. It tasted, if it tasted like anything, like an ordinary Tuesday, which is exactly what makes it unbearable to think about now." },
+  ];
+
+  var COIN_ORDER = COIN_DEFS.map(function(c){ return c.id; });
+  var COIN_MAP = {};
+  COIN_DEFS.forEach(function(c){ COIN_MAP[c.id] = c; });
+
+  var SAVE_KEY = 'nine-coins-save-v1';
+
+  function freshState(){
+    var coins = {};
+    COIN_DEFS.forEach(function(c){ coins[c.id] = { spent:false, tainted:false }; });
+    return { scene:'start', coins: coins, flags:{}, pendingNote:null };
+  }
+
+  var state = freshState();
+
+  function unspentIds(exclude){
+    exclude = exclude || [];
+    return COIN_ORDER.filter(function(id){
+      return !state.coins[id].spent && exclude.indexOf(id) === -1;
+    });
+  }
+  function spentIds(){
+    return COIN_ORDER.filter(function(id){ return state.coins[id].spent; });
+  }
+  function spendCoin(id){ state.coins[id].spent = true; }
+  function spendRandom(n, exclude){
+    exclude = exclude || [];
+    var pool = unspentIds(exclude).slice();
+    for (var i = pool.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    var taken = pool.slice(0, n);
+    taken.forEach(spendCoin);
+    return taken;
+  }
+  function nameRef(){ return state.coins.name.spent ? 'you' : 'Marisol'; }
+  function wrenName(){ return state.coins.laugh.spent ? 'someone small, whose face you cannot quite hold onto' : 'Wren'; }
+  function coinTitle(id){ return COIN_MAP[id].title; }
+  function listTitles(ids){
+    if (ids.length === 0) return 'nothing';
+    if (ids.length === 1) return '"' + coinTitle(ids[0]) + '"';
+    return ids.slice(0,-1).map(function(id){ return '"'+coinTitle(id)+'"'; }).join(', ') + ' and "' + coinTitle(ids[ids.length-1]) + '"';
+  }
+
+  function save(){
+    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(state)); }catch(e){}
+  }
+  function clearSave(){
+    try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  }
+  function loadSave(){
+    try{
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  // ---------- SCENES ----------
+
+  var SCENES = {
+
+    start: {
+      text: function(){
+        return [
+          "You died on a Tuesday, or something shaped like a Tuesday, and the dying itself is already behind you, already none of your business.",
+          "What you have instead is a road. Packed dirt, the colour of wet ash, running between trees that don't rustle because there is no wind to make them. Somewhere ahead — you understand this the way you understand your own name, without being told — there is a river, and on the far side of the river is whatever comes next.",
+          "In your hand, without you quite remembering picking it up, is a small drawstring purse. It is heavier than its size suggests."
+        ];
+      },
+      choices: function(){
+        return [
+          { label: 'Open it.', next: 'purse_intro' }
+        ];
+      }
+    },
+
+    purse_intro: {
+      text: function(){
+        return [
+          "Nine coins, dull metal, each stamped not with a face or a number but with a few words — a title, like the caption under a photograph.",
+          "You tip them into your palm and read: " + listTitles(COIN_ORDER.slice(0, 4)) + ", and five more besides.",
+          "You understand, again without being told, what they are and what they're for. Not currency exactly. More like collateral. Everything you ever thought was safely, permanently yours, minted down into something that can now be handed away.",
+          "The road does not wait for you to feel ready about this."
+        ];
+      },
+      choices: function(){
+        return [ { label: 'Start walking.', next: 'gate' } ];
+      }
+    },
+
+    gate: {
+      text: function(){
+        return [
+          "The road narrows to a gate of black iron standing alone with no fence attached to it in either direction — nothing stopping you from simply walking around it, except that the trees on both sides have become, on closer look, not trees.",
+          "The gate is weeping. Not metaphorically — water, or something like water, runs down the ironwork in slow, continuous lines, pooling at the base and vanishing into the dirt without ever forming a puddle.",
+          "A voice, made of the same sound as the weeping, tells you the toll is one memory. Any one. It does not care which."
+        ];
+      },
+      choices: function(){
+        return [
+          { label: 'Pay with one coin.', pick: { count:1, prompt:'Choose one memory to give the gate.' },
+            resolve: function(chosen){
+              chosen.forEach(spendCoin);
+              state.pendingNote = 'You hand over ' + listTitles(chosen) + '. The gate drinks it without ceremony, and the weeping, for a moment, slows.';
+              return 'orchard';
+            } },
+          { label: 'Push through without paying.',
+            resolve: function(){
+              var lost = spendRandom(2);
+              state.flags.defiance = (state.flags.defiance || 0) + 1;
+              state.pendingNote = 'You shoulder past the ironwork. It does not stop you — it simply takes what it wants on your way through, without asking which. You feel ' + listTitles(lost) + ' go, all at once, like a held breath finally let out.';
+              return 'orchard';
+            } }
+        ];
+      }
+    },
+
+    orchard: {
+      text: function(){
+        var seen = state.flags.gaveToBeggar ? "" : "";
+        return [
+          "The trees thin into an orchard of bare, black-limbed things that were probably fruit trees once. Sitting under the largest of them is a small grey shape that resolves, as you approach, into a person — or the idea of one, sketched thin, sitting with their knees drawn up.",
+          "They don't ask you for anything. They just look at your purse the way a starving man might look at a window with food behind it, and then look away, embarrassed to have looked at all."
+        ];
+      },
+      choices: function(){
+        var opts = [];
+        opts.push({ label: 'Give them a coin.', pick: { count:1, prompt:'Choose one memory to leave with the stranger under the tree.' },
+          resolve: function(chosen){
+            chosen.forEach(spendCoin);
+            state.flags.gaveToBeggar = true;
+            state.pendingNote = 'You press ' + listTitles(chosen) + ' into their hands. They don’t say thank you. They just hold it like something that might still be warm.';
+            return 'twin_roads';
+          } });
+        opts.push({ label: 'Walk past.',
+          resolve: function(){
+            state.pendingNote = null;
+            return 'twin_roads';
+          } });
+        return opts;
+      }
+    },
+
+    twin_roads: {
+      text: function(){
+        return [
+          "The road splits around a low stone table where a tollkeeper sits with nothing on it — no scale, no ledger, nothing to weigh what you owe against. When you approach, they only say: something that tastes of salt.",
+          state.coins.salt.spent
+            ? "You already know, with a small drop in your chest, that you don't have that anymore."
+            : "You feel the coin they mean sitting in your purse, distinct from the others, the way a stone in a shoe makes itself known before you've even looked."
+        ];
+      },
+      choices: function(){
+        var opts = [];
+        if (!state.coins.salt.spent){
+          opts.push({ label: 'Offer the coin that tastes of salt.',
+            resolve: function(){
+              spendCoin('salt');
+              state.pendingNote = 'You give them "The Taste of Salt." The tollkeeper nods once, as if it were the only acceptable answer, and you feel the specific gravity of that day at the sea lift out of you.';
+              return 'mirror_pool';
+            } });
+          opts.push({ label: 'Offer two others instead.', pick: { count:2, exclude:['salt'], prompt:'Choose two other memories to offer instead.' },
+            resolve: function(chosen){
+              chosen.forEach(spendCoin);
+              state.pendingNote = 'You keep the salt, and pay instead with ' + listTitles(chosen) + '. The tollkeeper accepts it, though something in the way they weigh it suggests you overpaid.';
+              return 'mirror_pool';
+            } });
+        } else {
+          opts.push({ label: 'Offer two coins instead — it’s all you can give.', pick: { count:2, prompt:'Choose two memories to offer.' },
+            resolve: function(chosen){
+              chosen.forEach(spendCoin);
+              state.pendingNote = 'You offer ' + listTitles(chosen) + '. The tollkeeper takes both without comment, the way you take a substitute when the thing you actually wanted is already gone.';
+              return 'mirror_pool';
+            } });
+        }
+        return opts;
+      }
+    },
+
+    mirror_pool: {
+      text: function(){
+        var spent = spentIds();
+        var lines = [
+          "The road opens onto a black, flat pool with no visible source and no visible outlet. It does not reflect you."
+        ];
+        if (spent.length === 0){
+          lines.push("It doesn't reflect anything at all, actually — you still have everything you started with, and the water seems almost disappointed by that.");
+        } else {
+          lines.push("It reflects, instead, " + listTitles(spent) + " — the things you no longer have — rising and turning slowly under the surface like drowned things that haven't noticed they're drowned.");
+          lines.push("You understand that you could reach in. That the water would give one back, for a price.");
+        }
+        return lines;
+      },
+      choices: function(){
+        var opts = [];
+        var spent = spentIds();
+        var canRestore = spent.length > 0 && unspentIds().length >= 2;
+        if (canRestore){
+          opts.push({ label: 'Reach in and pay two coins to pull one memory back out.',
+            twoStagePick: {
+              stage1: { count:1, from:spent, prompt:'Which memory do you reach for?' },
+              stage2: function(restoredId){ return { count:2, exclude:[restoredId], prompt:'Pay with two of your remaining memories.' }; }
+            },
+            resolve: function(restoredId, paid){
+              state.coins[restoredId].spent = false;
+              state.coins[restoredId].tainted = true;
+              paid.forEach(spendCoin);
+              state.pendingNote = 'You pull "' + coinTitle(restoredId) + '" dripping out of the black water, and pay for it with ' + listTitles(paid) + '. It’s back in your hand — but the water has left something on it. It doesn’t sit in your palm quite the way it used to.';
+              return 'namekeeper';
+            } });
+        }
+        opts.push({ label: 'Leave the water alone. Keep walking.',
+          resolve: function(){ state.pendingNote = null; return 'namekeeper'; } });
+        return opts;
+      }
+    },
+
+    namekeeper: {
+      text: function(){
+        return [
+          "The last tollkeeper before the river doesn't sit at a gate or a table. They simply stand in the middle of the road, and when they speak, they use a name.",
+          state.coins.name.spent
+            ? "They use a name you no longer recognize as one you've ever answered to. It takes you a moment to realize they mean you."
+            : "“Marisol,” they say, and something in you answers to it before you've decided to, the way a held breath answers to being let go.",
+          "They tell you the price of crossing them is that name itself — or, if you'd rather keep it, three of anything else."
+        ];
+      },
+      choices: function(){
+        var opts = [];
+        if (!state.coins.name.spent){
+          opts.push({ label: 'Give up your name.',
+            resolve: function(){
+              spendCoin('name');
+              state.pendingNote = 'You let it go. There is no dramatic wrenching — it simply stops being something you’re holding. The tollkeeper doesn’t use any name for you after that, and neither, from here on, will this road.';
+              return 'narrows';
+            } });
+        }
+        var avail = unspentIds(['name']);
+        if (avail.length >= 3){
+          opts.push({ label: 'Offer three others to keep your name.', pick: { count:3, exclude:['name'], prompt:'Choose three memories to give up instead of your name.' },
+            resolve: function(chosen){
+              chosen.forEach(spendCoin);
+              state.pendingNote = 'You pay with ' + listTitles(chosen) + '. The tollkeeper takes all three without visible satisfaction, but steps aside, and you keep the one word that has been yours since before you could ask for anything else.';
+              return 'narrows';
+            } });
+        }
+        if (opts.length === 0){
+          opts.push({ label: 'You have nothing left to give.',
+            resolve: function(){
+              var lost = spendRandom(99);
+              state.pendingNote = lost.length
+                ? 'The tollkeeper simply takes what remains — ' + listTitles(lost) + ' — and steps aside without a word, the way you’d step aside for someone who clearly has nothing left to lose.'
+                : 'There is, at this point, genuinely nothing left to take. The tollkeeper looks at your empty hands for a long moment, and steps aside anyway.';
+              return 'narrows';
+            } });
+        }
+        return opts;
+      }
+    },
+
+    narrows: {
+      text: function(){
+        return [
+          "The road forks a last time. One path is a narrow ledge over a drop you can't see the bottom of, unstable underfoot, obviously the faster way. The other loops long and level through more of the black-limbed trees, safe, unhurried, and ends, eventually, at one final small stone marker that will want paying like everything else has.",
+          "You can hear the river now, from either direction."
+        ];
+      },
+      choices: function(){
+        return [
+          { label: 'Risk the narrow ledge.',
+            resolve: function(){
+              var lost = spendRandom(3);
+              state.flags.defiance = (state.flags.defiance || 0) + 1;
+              state.pendingNote = lost.length
+                ? 'The ledge crumbles twice under your feet and you catch yourself both times, but not for free — you feel ' + listTitles(lost) + ' shake loose and fall away into the dark before you make it across.'
+                : 'The ledge crumbles under your feet, and you catch yourself, and there is nothing left in your hands for it to take, so this time, it simply lets you through.';
+              return 'ferry';
+            } },
+          { label: 'Take the long, safe way.', pick: { count:1, prompt:'Pay one coin at the final marker.' },
+            resolve: function(chosen){
+              chosen.forEach(spendCoin);
+              state.pendingNote = 'It takes longer, but nothing surprises you. At the last marker, you pay with "' + coinTitle(chosen[0]) + '," calmly, the way you’d pay a toll you’d budgeted for.';
+              return 'ferry';
+            } }
+        ];
+      }
+    },
+
+    ferry: {
+      text: function(){
+        var remaining = unspentIds();
+        var nameKept = !state.coins.name.spent;
+        var promiseKept = !state.coins.promise.spent && !state.coins.promise.tainted;
+        var laughKept = !state.coins.laugh.spent && !state.coins.laugh.tainted;
+
+        var body = [
+          "The trees stop. The river is wide, black, unhurried, and there is a boat on it with no visible means of moving, and someone standing in the boat who has been waiting for exactly as long as it takes anyone to arrive."
+        ];
+
+        var endingKey, endingTitle, endingBody;
+
+        if (nameKept && promiseKept && laughKept){
+          endingKey = 'expected';
+          endingTitle = 'The One Who Is Expected';
+          endingBody = [
+            "Someone is waiting on the near bank, small, familiar, unmistakably real, and you know her before the boat has even touched the shore — " + wrenName() + ".",
+            "“You came back before the snow,” she says, like it was never in question, like keeping a promise across the border of being dead was simply the sort of thing " + nameRef() + " did.",
+            "You have your name to say back to her with. You have the laugh you're hearing right now, matched exactly against the one you carried the whole way here. Nothing about this reunion is a reconstruction. It is simply the thing itself, arrived at last."
+          ];
+        } else if (promiseKept && !nameKept){
+          endingKey = 'stranger';
+          endingTitle = 'The Stranger Who Kept Her Word';
+          endingBody = [
+            "Someone is waiting on the near bank — young, familiar in a way you can't locate, watching you with an expression you don't have the context for.",
+            "“You came back,” she says, relieved, like this was a thing that mattered enormously, and you believe her completely without knowing why it should.",
+            "You don't have a name to offer her in return. You have only the fact of having arrived, and the strange, sourceless certainty that arriving was the whole point, that you'd have crossed a much worse river than this one to keep whatever this was. She takes your hand like it's the most natural thing in the world. For her, it is."
+          ];
+        } else if (nameKept && !promiseKept && !laughKept){
+          endingKey = 'hollow';
+          endingTitle = 'The Woman Who Forgot Why She Came';
+          endingBody = [
+            "No one is waiting on the near bank. You are fairly sure, in an abstract way, that someone was supposed to be.",
+            "The ferryman looks at you the way you'd look at a letter with no return address — clearly meant for someone, clearly incomplete without knowing who.",
+            "“Marisol,” he says, and you answer to it, whole and intact and entirely yourself, and that turns out to be exactly the problem. You are all here. There is simply nothing here waiting for all of you. You board the boat anyway. There is nowhere else productive to stand."
+          ];
+        } else if ((state.flags.defiance || 0) >= 2){
+          endingKey = 'anchor';
+          endingTitle = 'The Anchor';
+          endingBody = [
+            "You reach the bank still carrying nearly everything — every stubborn refusal, every toll you fought instead of paid, every coin you clenched a fist around rather than let go.",
+            "The boat doesn't sink under the weight, exactly. It simply doesn't rise to meet you. The ferryman explains, not unkindly, that the crossing has always required arriving lighter than you started, and you, by policy or by accident, have arrived heavier.",
+            "You'll stand on this bank for a long time, still holding all of it, becoming — slowly, without ever quite agreeing to it — the kind of thing that stands at gates and asks other people what they're willing to give up."
+          ];
+        } else if (remaining.length <= 2){
+          endingKey = 'unburdened';
+          endingTitle = 'The Unburdened';
+          endingBody = [
+            "You reach the bank almost empty-handed, and it is, unexpectedly, the easiest thing you have ever done.",
+            "The ferryman doesn't ask your name, and you find you don't especially need him to. Whatever waited for you on the far side, or didn't, you will meet it clean, uncomplicated, mostly a shape where a person used to be.",
+            "It isn't peace, exactly. It's closer to relief — the specific relief of finally setting down something you'd stopped noticing you were carrying. You step into the boat. You do not look back, mostly because there is very little left in you that remembers there was a back to look at."
+          ];
+        } else {
+          endingKey = 'crossing';
+          endingTitle = 'The Crossing';
+          endingBody = [
+            "You reach the bank carrying some of it and not all of it — " + listTitles(remaining) + " — which is, the ferryman seems to suggest with his silence, about the going rate.",
+            (nameKept ? "You still have your name to give him, if he asks." : "You don't have a name ready, if he asks.") + " " +
+            (promiseKept ? "The promise you made is still, technically, unbroken." : "The promise you made didn't survive the road, one way or another."),
+            "The boat holds you fine. Most things, it turns out, cross this river carrying something and missing something else. You are, in that sense, unremarkable. The water doesn't care what you kept. It only ever cared that you were lighter than you were when you started."
+          ];
+        }
+
+        if (state.flags.gaveToBeggar){
+          endingBody.push("Somewhere behind you, on the road, a small grey shape is still holding the one thing you gave away for nothing. It isn't much. It isn't nothing, either.");
+        }
+
+        state.flags.endingKey = endingKey;
+        return { intro: body, title: endingTitle, body: endingBody };
+      },
+      isEnding: true,
+      choices: function(){
+        return [ { label: 'See what the road cost you.', next: 'reckoning' } ];
+      }
+    },
+
+    reckoning: {
+      text: function(){
+        return [ "" ]; // rendered specially
+      },
+      isReckoning: true,
+      choices: function(){
+        return [ { label: 'Walk the road again.',
+          resolve: function(){
+            clearSave();
+            state = freshState();
+            renderTitle();
+            return null;
+          } } ];
+      }
+    }
+  };
+
+  // ---------- RENDERING ----------
+
+  var textEl = document.getElementById('text');
+  var choicesEl = document.getElementById('choices');
+  var pickerEl = document.getElementById('picker');
+  var purseEl = document.getElementById('purse');
+  var headerBar = document.getElementById('headerBar');
+  var coinCountEl = document.getElementById('coinCount');
+  var appEl = document.getElementById('app');
+
+  function updatePurse(){
+    coinCountEl.textContent = unspentIds().length;
+    var html = '<h2>Your Purse</h2>';
+    COIN_ORDER.forEach(function(id){
+      var c = state.coins[id];
+      var def = COIN_MAP[id];
+      var cls = c.spent ? 'spent' : (c.tainted ? 'tainted kept' : 'kept');
+      var mark = c.spent ? '○' : (c.tainted ? '✦' : '●');
+      html += '<div class="coinItem ' + cls + '">' +
+        '<div class="ct"><span class="mark">' + mark + '</span> ' + def.title + '</div>';
+      if (c.spent){
+        html += '<p>Spent. Gone from your hands, though not, maybe, from the road.</p>';
+      } else if (c.tainted){
+        html += '<p>' + def.text + ' <em>It came back out of the water. It isn’t wrong exactly — just slightly off, the way a word looks strange after you’ve stared at it too long.</em></p>';
+      } else {
+        html += '<p>' + def.text + '</p>';
+      }
+      html += '</div>';
+    });
+    purseEl.innerHTML = html;
+  }
+
+  function clearPicker(){
+    pickerEl.style.display = 'none';
+    pickerEl.innerHTML = '';
+  }
+
+  function renderChoices(list){
+    choicesEl.innerHTML = '';
+    choicesEl.style.display = 'flex';
+    list.forEach(function(opt){
+      var btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.innerHTML = opt.label;
+      btn.addEventListener('click', function(){
+        handleChoice(opt);
+      });
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  function handleChoice(opt){
+    if (opt.pick){
+      showPicker(opt.pick, function(chosen){
+        clearPicker();
+        var next = opt.resolve(chosen);
+        advance(next);
+      });
+      return;
+    }
+    if (opt.twoStagePick){
+      var s1 = opt.twoStagePick.stage1;
+      showPicker(s1, function(chosenStage1){
+        var restoredId = chosenStage1[0];
+        clearPicker();
+        var s2 = opt.twoStagePick.stage2(restoredId);
+        showPicker(s2, function(chosenStage2){
+          clearPicker();
+          var next = opt.resolve(restoredId, chosenStage2);
+          advance(next);
+        });
+      });
+      return;
+    }
+    var next = opt.resolve ? opt.resolve() : opt.next;
+    advance(next);
+  }
+
+  function showPicker(spec, callback){
+    choicesEl.style.display = 'none';
+    var pool = spec.from ? spec.from.slice() : unspentIds(spec.exclude || []);
+    var count = spec.count;
+    var selected = [];
+    pickerEl.style.display = 'block';
+    var html = '<div class="pickerHead">' + spec.prompt + ' (' + count + (count === 1 ? ' needed' : ' needed') + ')</div>';
+    pool.forEach(function(id){
+      var def = COIN_MAP[id];
+      html += '<label class="pickRow" data-id="' + id + '">' +
+        '<input type="checkbox" value="' + id + '">' +
+        '<span><span class="t">' + def.title + '</span><span class="d">' + def.text + '</span></span>' +
+        '</label>';
+    });
+    html += '<br><button id="pickerConfirm" disabled>Confirm</button>';
+    pickerEl.innerHTML = html;
+
+    var boxes = pickerEl.querySelectorAll('input[type=checkbox]');
+    var confirmBtn = document.getElementById('pickerConfirm');
+    boxes.forEach(function(box){
+      box.addEventListener('change', function(){
+        selected = Array.prototype.filter.call(boxes, function(b){ return b.checked; }).map(function(b){ return b.value; });
+        if (selected.length > count){
+          box.checked = false;
+          selected = selected.filter(function(v){ return v !== box.value; });
+        }
+        confirmBtn.disabled = selected.length !== count;
+      });
+    });
+    confirmBtn.addEventListener('click', function(){
+      if (selected.length !== count) return;
+      callback(selected);
+    });
+  }
+
+  function renderScene(){
+    var scene = SCENES[state.scene];
+    clearPicker();
+    choicesEl.style.display = 'flex';
+
+    var out = scene.text();
+
+    if (scene.isReckoning){
+      renderReckoning();
+      renderChoices(scene.choices());
+      save();
+      return;
+    }
+
+    var html = '';
+    if (state.pendingNote){
+      html += '<p class="note">' + state.pendingNote + '</p>';
+      state.pendingNote = null;
+    }
+
+    if (scene.isEnding){
+      out.intro.forEach(function(p){ html += '<p>' + p + '</p>'; });
+      html += '<div class="ending-title">' + out.title + '</div>';
+      out.body.forEach(function(p){ html += '<p>' + p + '</p>'; });
+    } else {
+      out.forEach(function(p){ html += '<p>' + p + '</p>'; });
+    }
+
+    textEl.innerHTML = html;
+    updatePurse();
+    renderChoices(scene.choices());
+    save();
+
+    var stage = document.getElementById('stage');
+    stage.style.animation = 'none';
+    void stage.offsetWidth;
+    stage.style.animation = '';
+  }
+
+  function renderReckoning(){
+    var kept = COIN_ORDER.filter(function(id){ return !state.coins[id].spent; });
+    var spent = COIN_ORDER.filter(function(id){ return state.coins[id].spent; });
+    var html = '<div class="ending-title">The Reckoning</div>';
+    html += '<p>You kept ' + kept.length + ' of nine. You gave away ' + spent.length + '.</p>';
+    updatePurse();
+    purseEl.classList.add('open');
+    html += '<p style="color:var(--ink-dim); font-style:italic;">The shape of what’s left of you is laid out below, in your purse.</p>';
+    textEl.innerHTML = html;
+  }
+
+  function advance(next){
+    if (!next) return;
+    state.scene = next;
+    renderScene();
+  }
+
+  function startGame(fromSave){
+    headerBar.style.display = 'flex';
+    if (!fromSave){
+      state = freshState();
+    }
+    renderScene();
+  }
+
+  // ---------- TITLE SCREEN ----------
+
+  function renderTitle(){
+    headerBar.style.display = 'none';
+    purseEl.classList.remove('open');
+    var existing = loadSave();
+
+    textEl.innerHTML =
+      '<div id="titleScreen">' +
+      '<h1>Nine Coins for the Crossing</h1>' +
+      '<p class="sub">a road, a river, and everything you were willing to forget</p>' +
+      '<p class="about">Every tollkeeper on this road takes a memory, not a coin of metal. What you give away, you don’t get to keep secret from what comes after — the road remembers what you don’t.</p>' +
+      '</div>';
+
+    var opts = [];
+    if (existing){
+      opts.push({ label: 'Continue your journey', resolve: function(){
+        state = existing;
+        startGame(true);
+        return null;
+      } });
+    }
+    opts.push({ label: existing ? 'Begin a new journey' : 'Begin', resolve: function(){
+      clearSave();
+      startGame(false);
+      return null;
+    } });
+
+    choicesEl.innerHTML = '';
+    choicesEl.style.display = 'flex';
+    document.getElementById('titleScreen');
+    var wrap = document.createElement('div');
+    opts.forEach(function(opt){
+      var btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', function(){
+        opt.resolve();
+      });
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  document.getElementById('purseToggle').addEventListener('click', function(){
+    purseEl.classList.toggle('open');
+    updatePurse();
+  });
+
+  renderTitle();
+
+})();
+</script>
+</body>
+</html>
